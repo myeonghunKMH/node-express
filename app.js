@@ -1,46 +1,30 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-const nunjucks = require('nunjucks');
+const express = require("express");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const app = express();
+const port = 3058;
+let imageCounter = 0; // 이미지 파일 이름에 사용할 카운터
 
-var indexRouter = require('./routes/index');
-// var usersRouter = require('./routes/users');
+app.use(bodyParser.raw({ type: "application/octet-stream" }));
 
-var app = express();
+app.post("/api/upload-image", (req, res) => {
+  const receivedImageData = req.body;
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'njk');
-nunjucks.configure('views', { 
-  express: app,
-  watch: true,
+  // 이미지 데이터를 서버의 uploads 폴더에 저장
+  const imagePath = `uploads/image_${imageCounter}.jpg`; // 이미지 파일 경로
+  imageCounter++; // 이미지 카운터 증가
+
+  fs.writeFile(imagePath, receivedImageData, (err) => {
+    if (err) {
+      console.error("이미지 저장 중 오류 발생:", err);
+      res.status(500).send("이미지 저장 중 오류 발생");
+    } else {
+      console.log(`이미지를 성공적으로 저장했습니다. 파일 경로: ${imagePath}`);
+      res.status(200).send("이미지를 성공적으로 받았고 저장했습니다.");
+    }
+  });
 });
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', indexRouter);
-// app.use('/users', usersRouter);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+app.listen(port, () => {
+  console.log(`서버가 http://10.0.2.2:${port} 포트에서 실행 중입니다.`);
 });
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
-module.exports = app;
